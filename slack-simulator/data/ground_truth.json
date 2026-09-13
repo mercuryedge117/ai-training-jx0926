@@ -1,0 +1,57 @@
+{
+  "description": "Grading labels for student bots, aligned with data/sample_messages.jsonl. Message ids reference the 'id' field in the JSONL.",
+
+  "action_items": [
+    {"task": "Lead technical investigation of payment-api 5xx spike", "owner": "priya", "priority": "high", "due": null, "source_messages": ["m006"]},
+    {"task": "Prepare rollback of payment-service v2.14.0", "owner": "tom", "priority": "high", "due": null, "source_messages": ["m008", "m009"]},
+    {"task": "Hold customer communications until impact confirmed", "owner": "david", "priority": "medium", "due": null, "source_messages": ["m008", "m013"]},
+    {"task": "Update affected customers and status page", "owner": "david", "priority": "high", "due": null, "source_messages": ["m023", "m024"]},
+    {"task": "Schedule and run blameless postmortem", "owner": "sarah", "priority": "medium", "due": "2026-07-15", "source_messages": ["m023"]},
+    {"task": "Fix N+1 query and re-ship saved-payment-methods behind feature flag saved_payment_methods_v2", "owner": "jake", "priority": "high", "due": "2026-07-20", "source_messages": ["m028", "m029"]},
+    {"task": "Add connection-pool saturation alert (warn 70%, page 90%)", "owner": "tom", "priority": "high", "due": "2026-07-17", "source_messages": ["m028", "m030"]},
+    {"task": "Add payment-path load test to CI pipeline", "owner": "aisha", "priority": "medium", "due": "2026-07-24", "source_messages": ["m028", "m031"]},
+    {"task": "Update payment-service runbook with pool-exhaustion playbook", "owner": "priya", "priority": "medium", "due": "2026-07-15", "source_messages": ["m028", "m032"]},
+    {"task": "Send OpenAPI spec for saved-payment-methods contract to Elena", "owner": "jake", "priority": "medium", "due": null, "source_messages": ["m035", "m036"]},
+    {"task": "Add idempotency key (X-CloudCart-Delivery-Id) to webhook retry PR #482", "owner": "jake", "priority": "medium", "due": null, "source_messages": ["m038", "m039"]},
+    {"task": "Send customer-facing incident summary to enterprise accounts", "owner": "david", "priority": "medium", "due": "2026-07-13", "source_messages": ["m025", "m026"]},
+    {"task": "Tag affected tickets with inc-0713 for revenue impact sizing", "owner": "david", "priority": "low", "due": null, "source_messages": ["m025", "m026"]},
+    {"task": "Build transactions CSV export (date filter, async job, email link)", "owner": "jake", "priority": "medium", "due": null, "source_messages": ["m049", "m050", "m051"]},
+    {"task": "Notify requesting merchants that CSV export is planned for next sprint", "owner": "david", "priority": "low", "due": null, "source_messages": ["m051", "m052"]}
+  ],
+
+  "risk_alerts": [
+    {"severity": "high", "reason": "SLO breach: payment-api p99 8.4s vs 800ms SLO, 5xx 12%, customer-facing checkout affected", "trigger_messages": ["m004", "m005"]},
+    {"severity": "medium", "reason": "Checkout redesign launch pulled in one week to 7/27; QA single-threaded, zero schedule slack", "trigger_messages": ["m040", "m041", "m042"]}
+  ],
+
+  "summaries": {
+    "incident_2026_07_13": {
+      "channel": "#incidents",
+      "window": ["2026-07-13T08:45:00", "2026-07-13T14:10:00"],
+      "must_include": [
+        "SEV-2 payment outage, impact window 08:55-09:58 (~63 min degraded checkout)",
+        "Root cause: v2.14.0 saved-payment-methods endpoint introduced N+1 query, exhausting the DB connection pool (200/200) and starving /charges",
+        "Mitigation: rollback to v2.13.2 completed 09:58, metrics recovered (p99 720ms, 5xx 0.3%)",
+        "No double charges: failed requests errored before capture",
+        "4 postmortem action items assigned (fix+flag by 7/20, pool alert by 7/17, CI load test by 7/24, runbook by 7/15); postmortem 7/15"
+      ],
+      "must_not_include": ["blame on individuals as summary framing"]
+    },
+    "product_2026_07_13": {
+      "channel": "#product",
+      "window": ["2026-07-13T13:30:00", "2026-07-13T13:50:00"],
+      "must_include": [
+        "Checkout redesign launch moved up one week to 7/27 for marketing campaign",
+        "A/B test variant cut from launch scope to fit the date; revisit in August",
+        "QA capacity flagged as the main risk"
+      ]
+    }
+  },
+
+  "faq": [
+    {"q": "Were any customers double-charged during the 7/13 payment outage?", "a": "No. Failed requests errored before capture, so no double charges occurred; failed orders simply did not go through.", "source_messages": ["m024"]},
+    {"q": "Are CloudCart webhooks signed and how do I verify them?", "a": "Yes. HMAC-SHA256 using the merchant webhook secret, delivered in the X-CloudCart-Signature header (format t=<timestamp>,v1=<hex>). Verify the digest and check the timestamp with ~5 minute tolerance to prevent replay.", "source_messages": ["m046"]},
+    {"q": "What caused the 7/13 payment outage?", "a": "A deploy (payment-service v2.14.0) introduced an N+1 query in the saved-payment-methods endpoint that exhausted the database connection pool, starving the charge path. It was resolved by rolling back to v2.13.2.", "source_messages": ["m014", "m021"]},
+    {"q": "Is a transactions CSV export available?", "a": "Not yet; it is planned for the next sprint (date-range filter, async generation, emailed download link).", "source_messages": ["m050", "m051"]}
+  ]
+}

@@ -1,0 +1,7 @@
+slack_sdk
+pyyaml
+python-dotenv
+
+# Scenario generation (generate_messages.py) — optional, only needed to write
+# new scenarios; data/sample_messages.jsonl already ships pre-generated.
+#   pip install openai        # or: pip install anthropic

@@ -1,0 +1,33 @@
+# Scenario: customer feature/escalation line.
+scenario_id: customer_request
+title: "Enterprise customer requests: webhook signatures & CSV export"
+sim_date: "2026-07-14"
+
+events:
+  - id: c1
+    time: "10:00"
+    channel: "#customer-support"
+    participants: [david, marcus, priya]
+    beat: >
+      David escalates CS-4903: BrightMart (enterprise) asks whether webhook payloads
+      are signed; their security team requires HMAC verification. Priya confirms
+      webhooks are signed with HMAC-SHA256, header X-CloudCart-Signature, docs link.
+    tone: helpful
+    ground_truth:
+      faq:
+        - q: "Are CloudCart webhooks signed? How do customers verify them?"
+          a: "Yes. HMAC-SHA256 signature in the X-CloudCart-Signature header; verify with the shared webhook secret."
+
+  - id: c2
+    time: "15:00"
+    channel: "#customer-support"
+    participants: [david, marcus, jake]
+    beat: >
+      CS-4911: three merchants asked for transactions CSV export. Marcus sizes it
+      as a quick win, asks Jake for an estimate (Jake: ~3 days). Marcus adds it to
+      the next sprint and asks David to notify the requesting customers.
+    tone: routine
+    ground_truth:
+      action_items:
+        - {task: "Estimate and build transactions CSV export", owner: jake, priority: medium}
+        - {task: "Notify requesting merchants that CSV export is planned for next sprint", owner: david, priority: low}

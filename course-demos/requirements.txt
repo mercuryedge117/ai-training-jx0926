@@ -1,0 +1,7 @@
+python-dotenv
+pyyaml
+flask
+openai
+slack_sdk
+slack_bolt
+pytest

@@ -1,0 +1,43 @@
+# Scenario: routine development line (runs in parallel with other scenarios).
+scenario_id: dev_sprint
+title: "Sprint 42: saved payment methods + checkout redesign"
+sim_date: "2026-07-13"
+
+events:
+  - id: d1
+    time: "09:30"
+    channel: "#engineering"
+    participants: [sarah, priya, jake, elena, tom, aisha]
+    beat: >
+      Async standup thread. Each member posts yesterday/today/blockers.
+      Elena blocked waiting on API contract for saved payment methods.
+    tone: routine
+    ground_truth:
+      action_items:
+        - {task: "Unblock Elena: finalize saved-payment-methods API contract", owner: jake, priority: medium}
+
+  - id: d2
+    time: "11:00"
+    channel: "#engineering"
+    participants: [priya, jake]
+    beat: >
+      PR review discussion on #482 (retry logic for webhook delivery).
+      Priya requests idempotency-key handling before approving; Jake agrees to add it.
+    tone: technical
+    ground_truth:
+      action_items:
+        - {task: "Add idempotency-key handling to webhook retry PR #482", owner: jake, priority: medium}
+
+  - id: d3
+    time: "13:30"
+    channel: "#product"
+    participants: [marcus, sarah, elena]
+    beat: >
+      Marcus shares that the checkout-redesign launch date moved up one week to 7/27
+      due to a marketing campaign. Sarah flags QA capacity risk; Elena estimates
+      remaining work at 6 days. Agreement: cut A/B test scope to make the date.
+    tone: negotiation
+    ground_truth:
+      risk_alert: {severity: medium, reason: "Launch date pulled in; QA capacity risk for checkout redesign"}
+      summary_points:
+        - "Checkout redesign launch moved up to 7/27; A/B test scope cut to compensate"

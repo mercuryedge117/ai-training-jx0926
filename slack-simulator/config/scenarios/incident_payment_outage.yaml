@@ -1,0 +1,113 @@
+# Scenario: SEV-2 payment outage caused by a bad deploy (connection pool exhaustion).
+# Each event node = skeleton; generate_messages.py asks the LLM to expand it
+# into 3-8 natural messages in the given channel by the given participants.
+# ground_truth entries feed data/ground_truth.json for grading student bots.
+
+scenario_id: incident_payment_outage
+title: "SEV-2: payment-api 5xx spike after v2.14.0 deploy"
+sim_date: "2026-07-13"
+
+events:
+  - id: e1
+    time: "08:45"
+    channel: "#engineering"
+    participants: [jake, tom]
+    beat: >
+      Jake deploys payment-service v2.14.0 (adds saved-payment-methods endpoint).
+      Tom confirms deploy went out to prod, all pods healthy.
+    tone: routine
+
+  - id: e2
+    time: "09:02"
+    channel: "#incidents"
+    participants: [tom]
+    beat: >
+      PagerDuty alert: payment-api p99 latency 8.4s (SLO 800ms), 5xx rate 12%.
+      Tom posts the alert with a Grafana dashboard link.
+    tone: urgent
+    ground_truth:
+      risk_alert: {severity: high, reason: "SLO breach - 5xx spike on payment path"}
+
+  - id: e3
+    time: "09:06"
+    channel: "#incidents"
+    participants: [sarah, tom, priya, jake]
+    beat: >
+      Sarah declares SEV-2 and starts a war-room thread. Assigns Priya as
+      investigation lead, Tom on mitigation, asks Jake about the 08:45 deploy.
+      David asked to hold customer comms until impact is confirmed.
+    tone: urgent
+    ground_truth:
+      action_items:
+        - {task: "Lead technical investigation of payment-api 5xx spike", owner: priya, priority: high}
+        - {task: "Prepare rollback of payment-service v2.14.0", owner: tom, priority: high}
+        - {task: "Hold customer communications until impact confirmed", owner: david, priority: medium}
+
+  - id: e4
+    time: "09:15"
+    channel: "#customer-support"
+    participants: [david, elena]
+    beat: >
+      David reports tickets coming in: Acme Corp (CS-4821) and two smaller
+      merchants see 'Payment failed, try again' at checkout. Elena confirms
+      frontend telemetry shows checkout error rate up 9x.
+    tone: concerned
+
+  - id: e5
+    time: "09:25"
+    channel: "#incidents"
+    participants: [priya, jake, tom]
+    beat: >
+      Priya finds DB connection pool exhausted: new endpoint in v2.14.0 runs an
+      N+1 query per saved payment method and holds connections. Pastes pg_stat_activity
+      output. Jake acknowledges the missing JOIN. Decision: roll back first, fix later.
+    tone: focused
+    ground_truth:
+      summary_points:
+        - "Root cause: v2.14.0 saved-payment-methods endpoint introduced N+1 query, exhausting DB connection pool"
+        - "Decision: immediate rollback to v2.13.2, fix to follow"
+
+  - id: e6
+    time: "09:58"
+    channel: "#incidents"
+    participants: [tom, sarah, elena]
+    beat: >
+      Tom completes rollback to v2.13.2. Metrics recover (p99 720ms, 5xx 0.3%).
+      Elena confirms checkout errors back to baseline. Sarah declares incident
+      mitigated, asks David to update customers and schedules postmortem for 7/15.
+    tone: relieved
+    ground_truth:
+      action_items:
+        - {task: "Update affected customers and status page", owner: david, priority: high}
+        - {task: "Schedule and run postmortem meeting", owner: sarah, due: "2026-07-15", priority: medium}
+
+  - id: e7
+    time: "10:10"
+    channel: "#customer-support"
+    participants: [david, marcus]
+    beat: >
+      David replies to Acme Corp on CS-4821: issue resolved, root cause a bad
+      deploy, no double charges occurred (payments failed cleanly). Marcus asks
+      for a customer-facing incident summary for the enterprise accounts.
+    tone: professional
+    ground_truth:
+      faq:
+        - q: "Were any customers double-charged during the 7/13 payment outage?"
+          a: "No. Failed requests errored before capture; no double charges occurred."
+
+  - id: e8
+    time: "14:00"
+    channel: "#incidents"
+    participants: [sarah, priya, jake, tom, aisha]
+    beat: >
+      Postmortem action items thread. Jake to fix the N+1 query and re-ship behind
+      a feature flag by 7/20. Tom to add connection-pool saturation alerts by 7/17.
+      Aisha to add payment-path load test to CI by 7/24. Priya to update the
+      payment-service runbook by 7/15. Blameless tone, Sarah closes the incident.
+    tone: constructive
+    ground_truth:
+      action_items:
+        - {task: "Fix N+1 query and re-ship saved-payment-methods behind feature flag", owner: jake, due: "2026-07-20", priority: high}
+        - {task: "Add connection-pool saturation alert to monitoring", owner: tom, due: "2026-07-17", priority: high}
+        - {task: "Add payment-path load test to CI pipeline", owner: aisha, due: "2026-07-24", priority: medium}
+        - {task: "Update payment-service runbook with pool-exhaustion playbook", owner: priya, due: "2026-07-15", priority: medium}
