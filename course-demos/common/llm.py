@@ -72,7 +72,8 @@ def llm_available() -> bool:
     return llm_provider() != "mock"
 
 
-def call_llm(system: str, user: str, mock=None, temperature: float = 0.3) -> str:
+def call_llm(system: str, user: str, mock=None, temperature: float = 0.3,
+             max_output_tokens: int | None = None) -> str:
     provider = llm_provider()
 
     if provider in ("openai", "deepseek"):
@@ -87,14 +88,15 @@ def call_llm(system: str, user: str, mock=None, temperature: float = 0.3) -> str
             model=llm_model(),
             messages=[{"role": "system", "content": system},
                       {"role": "user", "content": user}],
-            temperature=temperature)
+            temperature=temperature,
+            **({"max_tokens": max_output_tokens} if max_output_tokens is not None else {}))
         return r.choices[0].message.content
 
     if provider == "anthropic":
         import anthropic
         r = anthropic.Anthropic(timeout=_timeout(),
                                 max_retries=_max_retries()).messages.create(
-            model=llm_model(), max_tokens=1500, system=system,
+            model=llm_model(), max_tokens=max_output_tokens or 1500, system=system,
             messages=[{"role": "user", "content": user}])
         return r.content[0].text
 
