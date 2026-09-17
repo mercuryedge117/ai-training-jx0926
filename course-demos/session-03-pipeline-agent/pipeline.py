@@ -6,6 +6,7 @@ dedupe, logging, rate limits) becomes a small middleware that either passes
 the message down the chain or stops it. Same idea as Flask/Express middleware.
 """
 import time
+from collections import defaultdict, deque
 
 
 # Shared core; this file remains the small standalone teaching example.
@@ -34,6 +35,24 @@ def dedupe(msg, next_):
     return next_(msg)
 
 
+def rate_limit(limit=3, window=60, clock=time.monotonic):
+    """Return middleware that limits each author in a rolling time window."""
+    requests = defaultdict(deque)
+
+    def middleware(msg, next_):
+        now = clock()
+        timestamps = requests[msg["user"]]
+        while timestamps and now - timestamps[0] >= window:
+            timestamps.popleft()
+        if len(timestamps) >= limit:
+            print(f"  [rate_limit] dropped {msg['ts']}: {msg['user']} exceeded limit")
+            return None
+        timestamps.append(now)
+        return next_(msg)
+
+    return middleware
+
+
 def logger(msg, next_):
     t0 = time.time()
     result = next_(msg)
@@ -57,6 +76,8 @@ if __name__ == "__main__":
     pipe = (Pipeline()
             .use(ignore_bots)
             .use(dedupe)
+            # Duplicates and bot messages must not consume an author's quota.
+            .use(rate_limit())
             .use(normalize)
             .use(logger))
 
